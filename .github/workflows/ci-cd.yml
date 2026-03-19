@@ -1,0 +1,56 @@
+name: CI/CD - FastAPI Docker
+
+# 🚀 Trigger pipeline automatically on push
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+
+  # ✅ 1. Run Tests (CI)
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.10"
+
+      - name: Install Dependencies
+        run: |
+          pip install -r requirements.txt
+
+      - name: Run Tests
+        run: |
+          pytest
+
+  # 🐳 2. Build & Push Docker Image (CD)
+  docker:
+    runs-on: ubuntu-latest
+    needs: test   # only runs if tests pass
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      # 🔐 Login to Docker Hub
+      - name: Login to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      # 🐳 Build Image
+      - name: Build Docker Image
+        run: |
+          docker build -t ${{ secrets.DOCKER_USERNAME }}/fastapi-app:latest .
+
+      # 🚀 Push Image to Docker Hub
+      - name: Push Docker Image
+        run: |
+          docker push ${{ secrets.DOCKER_USERNAME }}/fastapi-app:latest
